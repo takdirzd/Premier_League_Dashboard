@@ -452,7 +452,7 @@ shinyServer(function(input, output) {
       )
     
     valueBox(
-      paste0(stands[20:20,1]), "Bottom 3 Degradation", icon = icon("arrow-down"),
+      paste0("Degradation"), "Bottom 3 Team will be degradate", icon = icon("arrow-down"),
       color = "red"
     )
     
