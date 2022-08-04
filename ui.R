@@ -7,13 +7,13 @@ dashboardPage(
   
   # DASHBOARD HEADER
   dashboardHeader(
-    title = "Premier League Analysis",
-    titleWidth = 320
+    title = "Premier League Dashboard",
+    titleWidth = 350
     
     
   ),
   dashboardSidebar(
-    width = 320,
+    width = 350,
     sidebarMenu(
     
     menuItem("Top 10 Team Goal", tabName = "page1", icon = icon("arrow-up", lib = "glyphicon")),

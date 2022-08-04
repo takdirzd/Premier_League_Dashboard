@@ -21,9 +21,9 @@ results <- results %>%
   # CHANGE DATA TYPE
   
   mutate(
-  home_team <- as.factor(home_team),
-  away_team <- as.factor(away_team),
-  result <- as.factor(result),
-  season <- as.factor(season)
+  home_team = as.factor(home_team),
+  away_team = as.factor(away_team),
+  result = as.factor(result),
+  season = as.factor(season)
   
 )
