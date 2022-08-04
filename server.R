@@ -38,7 +38,7 @@ shinyServer(function(input, output) {
       labs(
         title = "Top 10 Home Team with Most Home Goal over 12 season (2006-2007 to 2017-2018)",
         subtitle = "From 12 season (2006-2007 to 2017-2018)",
-        y = "Team",
+        y = NULL,
         x = "Goal"
       ) +
       theme_minimal()
@@ -87,7 +87,7 @@ shinyServer(function(input, output) {
       labs(
         title = "Top 10 Away Team with Most Away Goal over 12 season (2006-2007 to 2017-2018)",
         subtitle = "From 12 season (2006-2007 to 2017-2018)",
-        y = "Team",
+        y = NULL,
         x = "Goal"
       ) +
       theme_minimal()
@@ -113,32 +113,36 @@ shinyServer(function(input, output) {
     mua_result <- as.data.frame(table(mu_a$result))
     
     
-    colnames(muh_result)[colnames(muh_result)=="Freq"] = "Home Total"
-    colnames(mua_result)[colnames(mua_result)=="Freq"] = "Away Total"
+    colnames(muh_result)[colnames(muh_result)=="Freq"] = "As Home Team"
+    colnames(mua_result)[colnames(mua_result)=="Freq"] = "As Away Team"
     
     
     muha_join <- left_join(muh_result, mua_result)
     muha_join <- pivot_longer(data = muha_join,
-                              cols = c("Home Total", "Away Total"))
+                              cols = c("As Home Team", "As Away Team"))
     
-
+    
+    muha_join <- rename(muha_join, match_result = Var1) 
+    
     muha_join <- muha_join %>% 
       mutate(
+        
         label = glue(
-          "Team as: {name}
+          "{name}
           Result Count: {value}"
         )
       )
+      
     
     
-    plot3 <-  ggplot(data = muha_join, mapping = aes(x = Var1, y = value, fill = Var1, text = label)) + 
+    plot3 <-  ggplot(data = muha_join, mapping = aes(x = match_result, y = value, fill = match_result, text = label)) + 
       geom_col()  +
       facet_wrap(~ name) +
       labs(
         title=glue('{input$input_team} Match Results over 12 season (2006-2007 to 2017-2018)'),
         subtitle='From 12 season (2006-2007 to 2017-2018)',
         x = 'Result',
-        y = 'Home Goal'
+        y = NULL
       ) + 
       theme_minimal()
     
