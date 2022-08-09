@@ -1,0 +1,543 @@
+---
+title: "Premiere League Stats Visualization"
+author: "Takdir Zulhaq Dessiaming"
+date: "2022-07-22"
+output:
+  html_document:
+    theme: cosmo
+    highlight: breezedark
+    toc: true
+    toc_float:
+      collapsed: false
+    df_print: paged
+---
+
+# Introduction
+
+<img src = "https://storage.googleapis.com/kaggle-datasets-images/36492/55620/c59bb5dc871a245f7fbf9afa8fab5a75/dataset-cover.jpg?t=2018-07-15-09-56-44">
+
+The Premier League is the organising body of the Premier League with responsibility for the competition, its Rule Book and the centralised broadcast and other commercial rights.
+
+Each individual club is independent, working within the rules of football, as defined by the Premier League, The FA, UEFA and FIFA, as well as being subject to English and European law.
+
+Each of the 20 clubs are a Shareholder in the Premier League. Consultation is at the heart of the Premier League and Shareholder meetings are the ultimate decision-making forum for Premier League policy and are held at regular intervals during the course of the season.
+
+The Premier League AGM takes place at the close of each season, at which time the relegated clubs transfer their shares to the clubs promoted into the Premier League from the Football League Championship.
+
+*Note : Premier League is the Main League/First Division of England Football League*
+
+On the previous post, we have analyzed the data about premier league stats. There are 2 dataset from the source, `stats.csv` and `results.csv`. What we have here is `results.csv`, and we will continue our analysis on the previous post, but we will also add a visualization, to make it more easy to interpretation.
+
+**The main goal we have here is, to know :**    
+
+- **What the top 10 club with the most home or away goal**    
+- **Further analysis of Manchester United**   
+- **Further analysis on Chelsea and Manchester City (on the previous post)**     
+- **Team that are eligible to play in Champions League**    
+
+# Data Preprocessing
+
+This is the step we prepare the data before analysis.
+
+```{r}
+# Prepare the library to use analysis below
+
+library(scales)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(tidyr)
+library(glue)
+```
+
+## Import Data
+
+The first thing we should do is import the data to our notebook.
+
+```{r}
+results <- read.csv("results.csv")
+results
+```
+As we can see, there are 6 columns, with 4560 rows of data we have. This data will we use to analyze and explore the data.
+
+The data we have, there are :
+
+1. home_team = The team that they play as **the host/Home (it's Stadium)**
+2. away_team = The team that they play as **Away (Opponent's Stadium)**
+3. home_goals = The team that they score as the host/Home
+4. away_goals = the team that they score as the Away 
+5. result = The Match Result, **D = Draw, H = Home Team win, A = Away Team win**
+6. season = Season of the Match
+
+🟥**IMPORTANT NOTE :**🟥    
+
+**HOW TO READ RESULT COLUMNS : **       
+
+- IF THE RESULT IS **"D", = DRAW **   
+- IF THE RESULT IS **"A", = AWAY TEAM WIN THE MATCH **       
+- IF THE RESULT IS **"W", = HOME TEAM WIN THE MATCH  **      
+
+## Data Cleansing
+
+```{r}
+str(results)
+```
+Let’s check missing value to make sure.
+
+### Check Missing Value
+
+```{r}
+colSums(is.na(results))
+```
+There’s no missing value, that’s good. We can continue now.
+
+### Check Data Type 
+
+The data contains 2 type of data, `num` and `chr`. For the analysis, we can change the data type for “home_team”, “away_team”, "result", and "season" columns. Why? because there is data repeating. So we have to change the data type to factor(category) for ease data analysis.
+
+```{r}
+results$home_team <- as.factor(results$home_team)
+results$away_team <- as.factor(results$away_team)
+results$result <- as.factor(results$result)
+results$season <- as.factor(results$season)
+str(results)
+```
+Now all the data types is correct for each columns.
+
+# EDA and Visualization
+
+EDA stands for (Exploratory Data Analysis), it means we will explore the data to find something interesting.
+
+```{r}
+summary(results)
+```
+📌 Short Summary :
+
+- The average goals scored at **Home is higher** than Away
+- The highest home team score **(home goal)** in one match is **9 goal**! 
+  - or we can say, the highest home team win the game with 9 goal!    
+- The highest away team score **(away goal)** in one match is **7 goal**! 
+  - or we can say, the highest away team win the game with 7 goal!  
+- There are **2108 Home win**, **1164 Draw**, and **1288 Away win**. Looks like the teams in Premier League is strong as Home team!
+- There are **380 match** per season (12 season) 
+
+## Case Questions
+
+Now let’s explore the data more, and ask some question or we can find the detail about the summary above!
+
+### 1. What team with the Top 10 Home Goal over 12 season?
+
+```{r}
+top10_home <- aggregate(data =results, x = home_goals ~ home_team, FUN = sum )
+top10_home_order <- top10_home[order(top10_home$home_goals, decreasing = T),][1:10,]
+
+ggplot(data = top10_home_order, mapping = aes(x = home_goals , y = reorder(home_team, home_goals))) +
+  geom_col(aes(fill=home_goals), show.legend = F) +
+  geom_col(data = top10_home_order[2,],fill="#faeb1e") +
+  scale_fill_continuous(low = "#037ffc", high = "#183654") +    #The color we use HEX Code of color
+  geom_label(aes(label=home_goals)) +
+  labs(
+    title = "Top 10 Home Team with Most Home Goal",
+    subtitle = "From 12 season (2006-2007 to 2017-2018)",
+    y = "Team",
+    x = "Goal"
+  ) +
+  theme_minimal()
+```
+
+📌 Insight :
+
+- **Manchester City** is the **most home goal**, just 6 goal differ from Manchester United who had the most win.
+- It looks like **Manchester United with the most win** has **a lot of goal** too.
+
+
+### 2. What team with the Top 10 Away Goal over 12 season?
+
+```{r}
+top10_away <- aggregate(data =results, x = away_goals ~ away_team, FUN = sum )
+top10_away_order <- top10_away[order(top10_away$away_goals, decreasing = T),][1:10,]
+
+ggplot(data = top10_away_order, mapping = aes(x = away_goals , y = reorder(away_team, away_goals))) +
+  geom_col(aes(fill=away_goals), show.legend = F) +
+  geom_col(data = top10_away_order[2,],fill="#faeb1e") +
+  scale_fill_continuous(low = "#ff0000", high = "#592222") +     #The color we use HEX Code of color
+  geom_label(aes(label=away_goals)) +
+  labs(
+    title = "Top 10 Away Team with Most Away Goal",
+    subtitle = "From 12 season (2006-2007 to 2017-2018)",
+    y = "Team",
+    x = "Goal"
+  ) +
+  theme_minimal()
+```
+
+📌 Insight :
+
+- **Arsenal** is the **most home goal**, just 6 goal differ from Manchester United who had the most win.
+- It looks like **Manchester United with the most win** has **a lot of goal** too.
+- Something Interest here :
+  - We can see that Manchester United on the top 2 for both Home and Away goal! no wonder if they win the most.
+
+### 3. How Manchester United Match Result over 12 season?
+
+Let's explore more about Manchester United. We see the match result of Manchester United, the most win team over 12 season!
+
+```{r}
+mu_h <- results[results$home_team == "Manchester United",]
+mu_h$home_team <-  droplevels(mu_h$home_team)
+
+muh_result <-  as.data.frame(table(mu_h$result))
+
+mu_a <- results[results$away_team == "Manchester United",]
+mu_a$away_team <-  droplevels(mu_a$away_team)
+
+mua_result <- as.data.frame(table(mu_a$result))
+
+colnames(muh_result)[colnames(muh_result)=="Freq"] = "As Home Team"
+colnames(mua_result)[colnames(mua_result)=="Freq"] = "As Away Team"
+
+
+
+muha_join <- left_join(muh_result, mua_result)
+muha_join <- pivot_longer(data = muha_join,
+                    cols = c("As Home Team", "As Away Team"))
+colnames(muha_join)[colnames(muha_join)=="Var1"] = "match_result"
+muha_join
+```
+
+
+Now we visualize it!
+
+```{r}
+ggplot(data = muha_join, mapping = aes(x = match_result, y = value, fill = match_result)) + 
+  geom_col()  + 
+  geom_label(aes(label=value), fill = "white") +
+  facet_wrap(~ name) +
+  labs(
+    title='Manchester United Match Results',
+    subtitle='From 12 season (2006-2007 to 2017-2018)',
+    x = 'Result',
+    y = 'Result Count'
+  ) + 
+  theme_minimal()
+
+```
+
+🟥**IMPORTANT NOTE :**🟥 
+
+- AS **AWAY TEAM**
+  - **A = WIN**
+  - D = DRAW
+  - H = LOSS
+- AS **HOME TEAM**
+  - **H = WIN**
+  - D = DRAW
+  - A = LOSS
+
+
+📌 Insight :
+
+- Manchester United as Home Team, have a **winning total higher** than as Away Team.
+- Manchester United as Home Team, their winning total is **far higher** than Loss and Draw.
+- It's same for as Away Team, also have high winning total, but lower than as Home Team.
+
+### 4. Manchester United Goal Performance
+
+What about their goal per season? Let's see!
+
+```{r}
+mu_home <- results[results$home_team == "Manchester United" & results$result== "H",]
+mu_home <- aggregate(data = mu_home, x = home_goals ~ season, FUN = sum)
+
+mu_away <- results[results$away_team == "Manchester United" & results$result== "A",]
+mu_away <- aggregate(data = mu_away, x = away_goals ~ season , FUN = sum)
+
+# There's 2 dataframes, MU for home and MU for away team. For ease to head to head each other, we try to join them using left join
+
+join_mu <- left_join(mu_home, mu_away)
+
+join_mu <- pivot_longer(data = join_mu,
+                           cols = c("home_goals", "away_goals"))
+join_mu
+```
+Now, we visualize it!
+
+```{r}
+ggplot(data = join_mu, mapping = aes(x = season, y = value, group = name, col = name)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title='Manchester United Home and Away Goal Performance',
+    subtitle='From 12 season (2006-2007 to 2017-2018)',
+    x = 'Season',
+    y = 'Goal',
+    col = 'Result'
+  ) + 
+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 35)) 
+```
+📌 Insight :
+
+- There is a **fluctuating** both home and away goal.   
+- **Highest home goal** in season **2009-2010**. The **Lowest home goal** in **2016-2017**.    
+- **Highest away goal** in season **2006-2007 and 2011-2012**. The **Lowest away goal** in **2014-2015**.   
+
+
+### 5. Chelsea vs Manchester City Home and Away Goal
+
+As the previous post, it's interesting that both Chelsea and Manchester United has a very slight average difference goal, only 0.58, but Chelsea has 20 more win than Manchester City. What happen? Let's explore it!
+
+We try to find their Goal total.
+
+```{r}
+# FIND THEIR GOAL TOTAL
+
+# CHELSEA AS HOME AND AWAY TEAM SUBSETTING
+
+c_home <- results[results$home_team == "Chelsea" & results$result == "H",]
+c_home <- aggregate(data = c_home, x = home_goals ~ season + home_team, FUN = sum)
+
+c_away <- results[results$away_team == "Chelsea" & results$result == "A",]
+c_away <- aggregate(data = c_away, x = away_goals ~ season +away_team , FUN = sum)
+
+c_result <- left_join(c_home, c_away)
+c_result <- pivot_longer(data = c_result,
+                           cols = c("home_goals", "away_goals"))
+
+# MANCHESTER CITY AS HOME AND AWAY TEAM SUBSETTING
+
+mc_home <- results[results$home_team == "Manchester City" & results$result == "H",]
+mc_home <-  aggregate(data = mc_home, x = home_goals ~ season+ home_team , FUN = sum)
+
+mc_away <- results[results$away_team == "Manchester City" & results$result == "A",]
+mc_away <-  aggregate(data = mc_away, x = away_goals ~ season+ away_team , FUN = sum)
+
+mc_result <- left_join(mc_home, mc_away)
+mc_result <- pivot_longer(data = mc_result,
+                           cols = c("home_goals", "away_goals"))
+
+cmc_result <- full_join(c_result,mc_result)
+cmc_result <- cmc_result[,-2]
+colnames(cmc_result)[colnames(cmc_result)=="away_team"] = "team"
+
+
+cmc_result <- spread(data = cmc_result, name, value)
+cmc_result <- pivot_longer(data = cmc_result,
+                           cols = c("away_goals", "home_goals"))
+colnames(cmc_result)[colnames(cmc_result)=="name"] = "goal"
+head(cmc_result)
+
+
+```
+
+Now for visualize!
+
+```{r}
+cmc_agg <- aggregate( value ~ goal + team  , data = cmc_result, FUN = sum)
+
+ggplot(data = cmc_agg, aes(x = team, y = value)) +
+  geom_col(aes(fill = team), position = "dodge") +
+  facet_wrap(~ goal) +
+  
+  geom_label(aes(label=value))
+```
+📌 Insight :
+
+- Both team have **a slight difference** in the number of goals. Let's just calculate it.
+
+```{r}
+chelsea <- 297 + 411
+mc <-  266 + 447
+
+chelsea
+mc
+```
+
+- We can see that **Manchester City has more goal than Chelsea**, but still why Chelsea has more win?
+
+### 6. Chelsea vs Manchester City Match Result 
+
+As we can see that Manchester City still has more goals than Chelsea. To make sure why Chelsea has more win, let's look for **their match result**.
+
+```{r}
+# FIND THEIR MATCH RESULT
+
+# CHELSEA AND MANCHESTER CITY AS HOME TEAM SUBSETTING
+
+c_mc <- results[results$home_team == "Chelsea" | results$home_team == "Manchester City",]
+c_mc$home_team <-  droplevels(c_mc$home_team)
+c_mc_result <-  as.data.frame(table(c_mc$home_team, c_mc$result))
+
+colnames(c_mc_result)[colnames(c_mc_result)=="Var2"] = "Result"
+colnames(c_mc_result)[colnames(c_mc_result)=="Freq"] = "Home Team"
+
+# CHELSEA AND MANCHESTER CITY AS AWAY TEAM SUBSETTING
+
+c_mc_a <- results[results$away_team == "Chelsea" | results$away_team == "Manchester City",]
+c_mc_a$away_team <-  droplevels(c_mc_a$away_team)
+c_mca_result <-  as.data.frame(table(c_mc_a$away_team, c_mc_a$result))
+
+colnames(c_mca_result)[colnames(c_mca_result)=="Var2"] = "Result"
+colnames(c_mca_result)[colnames(c_mca_result)=="Freq"] = "Away Team"
+
+
+# CHELSEA AND MANCHESTER CITY JOINING HOME AND AWAY TEAM SUBSETTING
+
+cmc_join <- left_join(c_mc_result, c_mca_result)
+cmc_join <- pivot_longer(data = cmc_join,
+                    cols = c("Home Team", "Away Team"))
+
+cmc_agg <- aggregate(cmc_join, value ~  Var1 + Result + name , FUN = sum)
+cmc_agg
+
+```
+```{r}
+cmc_agg <- cmc_agg %>% 
+  mutate(
+    label = glue(
+      "Result: {Result}
+      Match Result Count: {value}"
+    )
+  )
+
+cmc_agg
+```
+
+We have result both of these two team. Now we visualize it.
+
+```{r}
+cmc_viz <- ggplot(data = cmc_agg, mapping = aes(x = Var1, y = value, fill = Result, text = label))+
+  geom_col(aes(fill = Result), position = "dodge", ) +
+  facet_wrap(~name) +
+  labs(
+  title='Chelsea vs Manchester City Match Results ',
+  subtitle='From 12 season (2006-2007 to 2017-2018)',
+  x = 'Team',
+  y = 'Total'
+  ) + 
+  theme_minimal()
+
+ggplotly(cmc_viz, tooltip = "text")
+```
+🟥**IMPORTANT NOTE :**🟥  
+
+- AS **AWAY TEAM**
+  - **A = WIN**
+  - D = DRAW
+  - H = LOSS
+  
+- AS **HOME TEAM**
+  - **H = WIN**
+  - D = DRAW
+  - A = LOSS
+
+
+📌 Insight :
+
+- As Away Team, **Chelsea has more goals** than Manchester City. And then, **Manchester City has more loss** than Chelsea.
+- As Home Team, there is **a slight difference in goals**, but Manchester City has more a little. And then, **Manchester City has more loss** than Chelsea.
+
+### 7. Standings for Champions League qualification
+
+For another exploration, as the previous post, we say that each team have to be the top 4 to qualified to Champions League. Let's see who will be get in season 2017-2018!
+
+Before that, we have to know Premier League Standings point rules :   
+- Three points are awarded for a win     
+- One point for a draw and    
+- None for a defeat   
+- The team with the most points at the end of the season winning the Premier League title      
+
+So, we will make a simple standings based on our data, our data contains result match over 12 season. Let's just take 2017-2018 for our analysis.
+
+```{r}
+# HOME
+
+clas_h <- results[results$season =="2017-2018",]
+clas_h <- clas_h[,c("home_team","home_goals","result","season")]
+clas_h <- as.data.frame.matrix(table(clas_h$home_team,clas_h$result))
+
+clas_h$point <-  (clas_h$D * 1) + (clas_h$H * 3)
+clas_h <- clas_h[order(clas_h$point, decreasing = TRUE),]
+
+
+clas_h <- cbind(team = rownames(clas_h), clas_h)
+rownames(clas_h) <- NULL
+
+# AWAY
+
+clas_a <- results[results$season =="2017-2018",]
+clas_a <- clas_a[,c("away_team","away_goals","result","season")]
+clas_a <- as.data.frame.matrix(table(clas_a$away_team,clas_a$result))
+
+clas_a$point <-  (clas_a$D * 1) + (clas_a$A * 3)
+clas_a <- clas_a[order(clas_a$point, decreasing = TRUE),]
+
+
+
+clas_a <- cbind(team = rownames(clas_a), clas_a)
+rownames(clas_a) <- NULL
+
+clas_h
+clas_a
+```
+
+We have standings, but it's not the final. It's just standings for Home and Away team. We have 2 dataframes now, then we have to join them!
+
+```{r}
+
+stands <- full_join(clas_h,clas_a, "team")
+stands$total_points <- stands$point.x + stands$point.y
+
+stands <- stands[order(stands$total_points, decreasing = T),]
+row.names(stands) <-  NULL
+
+stands <- stands[,-c(2:9)]
+
+stands <- stands[apply(stands!=0, 1, all),]
+stands
+
+```
+This is the final Standings now. Let's Visualize it.
+
+```{r, fig.width=8}
+ggplot(data = stands, aes(x = total_points, y = reorder(team , total_points))) +
+  geom_col( position = "dodge") +
+  geom_col(aes(fill = total_points), show.legend = FALSE) +
+  geom_col(data = stands[1:4,], fill = "#f18c8e") +
+  scale_fill_continuous(low = "#568ea6", high = "#f0b7a4") +
+  geom_label(aes(label=total_points)) +
+   labs(title = "Premier League Standings",
+        subtitle = "Season 2017-2018",
+        caption = "Top 4 team eligible for Champions League",
+        x = "Total Points Standings",
+        y = NULL) +
+  theme(legend.position = "top", # untuk mengubah posisi legend
+        plot.title.position = "plot") + # untuk mengubah posisi judul plot
+  theme_minimal()
+
+```
+📌 Insight :
+
+- Looks like Manchester City win the Premier League title this time!
+- The team that are eligible for Champions League are :
+  - Manchester City (Of course)
+  - Manchester United
+  - Tottenham Hotspur
+  - Liverpool
+
+Congrats!
+
+
+# Conclusion
+
+Based on analysis above, we find that :
+
+- Manchester United has the most win over 12 season, because **they have a good performance** (Goal per season and Match result).
+- As the previous post, it's interesting that both Chelsea and Manchester United has a very slight average difference goal, only 0.58, but Chelsea has 20 more win than Manchester City. The reason is, because **Manchester City has more loss than Chelsea** both as Home or Away Team.
+- Looks like the top 4 team is strong enough, especially Manchester City! The rest of the team have to struggle more to beat the top 4 team, for win the Premier League title and qualified for Champions League!
+
+# Reference
+- [Dataset](https://www.kaggle.com/datasets/zaeemnalla/premier-league?select=results.csv)   
+- [About Premier League](https://www.premierleague.com/about)   
+- [Premier League Stats](https://www.premierleague.com/stats/top/clubs/wins?se=418)   
